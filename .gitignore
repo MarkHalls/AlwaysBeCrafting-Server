@@ -1,3 +1,4 @@
+*.mp3
 # Logs
 logs
 *.log
@@ -35,3 +36,7 @@ jspm_packages
 
 # Optional REPL history
 .node_repl_history
+/dist
+/server/auth.json
+node_modules/
+*.db
