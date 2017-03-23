@@ -1,8 +1,17 @@
 const fs = require('fs');
 const nodedir = require('node-dir');
 const musicmetadata = require('musicmetadata');
-const schema = require('./schema');
 const sqlite = require('sqlite');
+
+const logChat = async (obj) => {
+		await sqlite.exec("BEGIN")
+		.then( async () => {
+			Promise.all(obj.data.map(async log => {
+				await sqlite.run("INSERT INTO chat_log(timestamp, user, message) VALUES (?,?,?)", [log.timestamp, log.user, log.message]);
+			}));
+			await sqlite.exec("COMMIT");
+});
+};
 
 const walkFiles = (dir) => new Promise((resolve, reject) => {
   nodedir.files(dir, (err, files) => {
@@ -65,19 +74,12 @@ const getTitlesByPlaylist = (playlist) => sqlite.all(`
 		WHERE playlist_tracks.playlist_id = ?`, 
 	[playlist]
 );
-// const createTables = () => schema.createTables(sqlite);
+
 const populateAllPlaylist = async () => {
 	await sqlite.run("INSERT OR IGNORE INTO playlists(name) VALUEs (?)", ["earthbound"]);
 	await sqlite.run(`INSERT OR IGNORE INTO playlist_tracks(playlist_id, track_id) SELECT "1",tracks.id FROM tracks`);
 };
 
-const connection = () => sqlite.open(`${__dirname}/sqlite.db`);
-
-connection().then( async () => {
-	await schema.createTables(sqlite);
-    await addMP3s("./assets");
-	await populateAllPlaylist();
-});
 
 module.exports = {
 	getTracks,
@@ -88,6 +90,7 @@ module.exports = {
 	getPlaylist,
 	getAllPlaylists,
 	logChat,
+	addMP3s,
 }
 
 

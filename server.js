@@ -1,7 +1,17 @@
 //Possibly refactor to hapi.js later (so happy)
 const express = require('express');
+const sqlite = require('sqlite');
+const schema = require('./app/db/schema');
 const db = require('./app/db/database');
 const path = require('path');
+const bodyParser = require('body-parser');
+
+const connection = () => sqlite.open(`${__dirname}/app/db/sqlite.db`);
+
+connection().then( async () => {
+	await schema.createTables(sqlite);
+    await db.addMP3s("./assets");
+});
 
 const server = express();
 const api = express();
@@ -10,6 +20,12 @@ const assets = express();
 api.get('/', (req, res) => {
     console.log('loaded');
     db.getFirstTrack().then(track => res.sendFile(path.resolve(__dirname, track.path)));
+});
+
+api.post('/chat', (req, res) => {
+    console.log(req.body);
+    db.logChat(req.body);
+    res.json({"data": "log received"});
 });
 
 api.get('/playlists', (req, res) => {
@@ -36,6 +52,7 @@ api.get('/songs/:id', (req, res) => {
     db.getTrackById(req.params.id).then(track => res.sendFile(path.resolve(__dirname, track.path)));
 });
 
+server.use(bodyParser.json());
 
 server.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
