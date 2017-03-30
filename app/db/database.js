@@ -2,16 +2,36 @@ const fs = require('fs');
 const nodedir = require('node-dir');
 const musicmetadata = require('musicmetadata');
 const sqlite = require('sqlite');
+const appPaths = require('../../app-paths');
+
+
+
 
 const logChat = async (obj) => {
-		await sqlite.exec("BEGIN")
-		.then( async () => {
-			Promise.all(obj.data.map(async log => {
-				await sqlite.run("INSERT INTO chat_log(timestamp, user, message) VALUES (?,?,?)", [log.timestamp, log.user, log.message]);
-			}));
-			await sqlite.exec("COMMIT");
-});
+	await sqlite.exec("BEGIN")
+	.then( async () => {
+		Promise.all(obj.data.map(async log => {
+			await sqlite.run("INSERT INTO chat_log(timestamp, user, message) VALUES (?,?,?)", [log.timestamp, log.user, log.message]);
+		}));
+		await sqlite.exec("COMMIT");
+	});
 };
+
+const logVotes = async (obj) => {
+	await sqlite.exec("BEGIN")
+	.then( async () => {
+		Promise.all(obj.data.map(async log => {
+			if (log.upvote){
+				await sqlite.run("INSERT INTO track_votes(track_id,upvotes) VALUES (?,?) ON DUPLICATE KEY UPDATE upvotes = upvotes + 1", [log.track_id, log.upvote]);
+			};
+			if (log.downvote){
+				await sqlite.run("INSERT INTO track_votes(track_id,downvotes) VALUES (?,?) ON DUPLICATE KEY UPDATE downvotes = downvotes + 1", [log.track_id, log.downvote]);
+			};
+		}));
+		await sqlite.exec("COMMIT");
+	});
+};
+
 
 const walkFiles = (dir) => new Promise((resolve, reject) => {
   nodedir.files(dir, (err, files) => {
